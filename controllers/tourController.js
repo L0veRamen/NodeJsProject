@@ -37,8 +37,6 @@ exports.getAllTours = async (req, res) => {
 
     excludedFields.forEach((el) => delete queryObj[el]);
 
-    // console.log(req.query, queryObj);
-
     // 1B) advanced filtering
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
@@ -53,22 +51,31 @@ exports.getAllTours = async (req, res) => {
     //2) Sorting
     if (req.query.sort) {
       const sortBy = req.query.sort.split(',').join(' ');
-      // console.log(sortBy);
       query = query.sort(sortBy);
-      //sort('price ratingsAverage')
-    }else{
+    } else {
       query = query.sort('-createdAt');
     }
 
-    // const query = Tour.find(queryObj);
+    // 3) field limiting
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+      query = query.select(fields);
+    } else {
+      query = query.select('-__v');
+    }
 
-    // console.log(req.query);
+    // 4) pagination
+    const page = req.query.page * 1 || 1;
+    const limit = req.query.limit * 1 || 100;
+    const skip = (page - 1) * limit;
 
-    // const tours = await Tour.find()
-    //   .where('duration')
-    //   .equals(5)
-    //   .where('difficulty')
-    //   .equals('easy');
+    //page=2&limit=10, 1-10, 11-20,21-30
+    query = query.skip(skip).limit(limit);
+
+    if (req.query.page) {
+      const numTours = await Tour.countDocuments();
+      if (skip >= numTours) throw new Error('This page does not exist');
+    }
 
     // execute query
     const tours = await query;
