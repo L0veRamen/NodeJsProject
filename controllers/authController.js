@@ -1,5 +1,5 @@
-const { promisify } = require('util');
 const crypto = require('crypto');
+const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
@@ -13,7 +13,6 @@ const signToken = (id) =>
 
 const createSendToken = (user, statusCode, res) => {
   const token = signToken(user._id);
-
   const cookieOptions = {
     expires: new Date(
       Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
@@ -43,6 +42,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm
   });
+
   createSendToken(newUser, 201, res);
 });
 
@@ -61,7 +61,6 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   // 3) If everything ok, send token to client
-
   createSendToken(user, 200, res);
 });
 
@@ -121,19 +120,17 @@ exports.restrictTo =
   };
 
 exports.forgotPassword = catchAsync(async (req, res, next) => {
-  // 1 get user based on post email
+  // 1) Get user based on POSTed email
   const user = await User.findOne({ email: req.body.email });
-
   if (!user) {
-    return next(new AppError('there is no user with email address.', 404));
+    return next(new AppError('There is no user with email address.', 404));
   }
 
-  // 2 generate the random reset token
+  // 2) Generate the random reset token
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
-  // 3 send it to user's email
-
+  // 3) Send it to user's email
   const resetURL = `${req.protocol}://${req.get(
     'host'
   )}/api/v1/users/resetPassword/${resetToken}`;
